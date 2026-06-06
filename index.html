@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sleeper Draft Room — Live</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=25" />
+</head>
+<body>
+  <div class="stage">
+
+    <!-- LOGIN / SETUP -->
+    <section id="setup" class="setup">
+      <div class="setup-card">
+        <div class="brand">
+          <div class="brand-mark">NFL</div>
+          <h1>The Draft Room</h1>
+          <p class="tagline">Live Sleeper drafts, presented in primetime.</p>
+        </div>
+
+        <label for="username">Sleeper Username</label>
+        <div class="row">
+          <input id="username" type="text" placeholder="e.g. sleeperuser" autocomplete="off" />
+          <button id="loadUser" class="primary">Lock In</button>
+        </div>
+
+        <div id="seasonRow" class="season-row" hidden>
+          <label for="season">Season</label>
+          <select id="season"></select>
+        </div>
+
+        <div id="leagueList" class="league-list"></div>
+        <div id="draftList" class="draft-list"></div>
+
+        <div id="setupError" class="error" hidden></div>
+
+        <div class="demo-strip">
+          <div class="demo-divider"><span>or</span></div>
+          <button id="demoBtn" class="demo-btn">▶ Run Demo Draft</button>
+          <div class="hint">Simulates a live snake draft so you can preview the chime and reveal flow.</div>
+        </div>
+
+        <div class="hint">No login required. Powered by the public Sleeper API.</div>
+      </div>
+    </section>
+
+  </div>
+
+  <script src="app.js?v=25"></script>
+</body>
+</html>
