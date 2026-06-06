@@ -621,8 +621,22 @@ function renderPrevClass() {
   }
   if (head) head.innerHTML = `<span class="flashback">${escapeHtml(short(teamLabel(user)))}</span> · ${escapeHtml(state.prevSeason || 'PREV')} CLASS${valueStr}`;
   list.innerHTML = '';
+
+  // Best win (beat a higher-KTC team) / worst loss (lost to a lower-KTC team) from last season.
+  const bw = state.prevBestWin && state.prevBestWin[uid];
+  const wl = state.prevWorstLoss && state.prevWorstLoss[uid];
+  if (bw || wl) {
+    const lbl = (u) => escapeHtml(state.prevUserLabel?.[u] || teamLabel((state.draftUsers || []).find(x => x.user_id === u)));
+    const li = document.createElement('li');
+    li.className = 'prev-results';
+    li.innerHTML =
+      (bw ? `<div class="pr-row"><span class="pr-tag win">BEST WIN</span><span class="pr-txt">def. ${lbl(bw.opp)} · KTC ${fmtVal(bw.oppKtc)}</span><span class="pr-score">Wk ${bw.wk} · ${Math.round(bw.mp)}–${Math.round(bw.op)}</span></div>` : '') +
+      (wl ? `<div class="pr-row"><span class="pr-tag loss">WORST LOSS</span><span class="pr-txt">to ${lbl(wl.opp)} · KTC ${fmtVal(wl.oppKtc)}</span><span class="pr-score">Wk ${wl.wk} · ${Math.round(wl.mp)}–${Math.round(wl.op)}</span></div>` : '');
+    list.appendChild(li);
+  }
+
   if (!picks.length) {
-    list.innerHTML = `<li class="recent-empty">No ${escapeHtml(state.prevSeason || 'prior')} draft class found for this manager.</li>`;
+    if (!bw && !wl) list.innerHTML = `<li class="recent-empty">No ${escapeHtml(state.prevSeason || 'prior')} draft class found for this manager.</li>`;
     return;
   }
   const teamsPrev = state.prevTeams || state.draft.settings.teams;
@@ -929,10 +943,74 @@ async function loadTeamValues() {
     computeRosterValues();
     buildRookiePool();
     updateClock();
-    renderRecent(); // surface the KTC value in the flashback header now that it's loaded
+    renderRecent(true); // surface the KTC value in the flashback header now that it's loaded
     renderAvailable();
+    await loadPrevResults(); // 2025 best win / worst loss (needs KTC + player index)
+    renderRecent(true);      // refresh the flashback now that results exist
   } catch (e) {
     console.warn('team values unavailable', e);
+  }
+}
+
+// Fetch the prior season's matchups + rosters, value each team by KTC, and find each manager's
+// best win (beat a HIGHER-KTC team) and worst loss (lost to a LOWER-KTC team). Keyed by user_id.
+async function loadPrevResults() {
+  const prevId = state.league && state.league.previous_league_id;
+  if (!prevId || prevId === '0' || !state.ktc || !state.playerIndex) return;
+  try {
+    const [prevRosters, prevUsers] = await Promise.all([
+      jget(`/league/${prevId}/rosters`).catch(() => []),
+      jget(`/league/${prevId}/users`).catch(() => []),
+    ]);
+    if (!prevRosters.length) return;
+
+    // Pull every week's matchups in parallel, then pair head-to-head games.
+    const weekData = await Promise.all(
+      Array.from({ length: 18 }, (_, i) => jget(`/league/${prevId}/matchups/${i + 1}`).catch(() => null))
+    );
+    const games = {};
+    prevRosters.forEach(r => { games[r.roster_id] = []; });
+    weekData.forEach((m, wi) => {
+      if (!m || !m.length) return;
+      const byMid = {};
+      m.forEach(e => { if (e.matchup_id != null) (byMid[e.matchup_id] = byMid[e.matchup_id] || []).push(e); });
+      Object.values(byMid).forEach(es => {
+        if (es.length !== 2) return;
+        const [a, b] = es;
+        if (games[a.roster_id]) games[a.roster_id].push({ opp: a.roster_id === b.roster_id ? null : b.roster_id, mp: a.points || 0, op: b.points || 0, wk: wi + 1 });
+        if (games[b.roster_id]) games[b.roster_id].push({ opp: a.roster_id, mp: b.points || 0, op: a.points || 0, wk: wi + 1 });
+      });
+    });
+
+    // KTC value of each 2025 roster (their players, valued at the current snapshot).
+    const ktcByRoster = {}, ownerByRoster = {};
+    prevRosters.forEach(r => {
+      let tot = 0;
+      (r.players || []).forEach(pid => { tot += valueForPlayerId(pid); });
+      ktcByRoster[r.roster_id] = tot;
+      ownerByRoster[r.roster_id] = r.owner_id;
+    });
+    const labelByUser = {};
+    prevUsers.forEach(u => { labelByUser[u.user_id] = (u.metadata && u.metadata.team_name) || u.display_name || 'Manager'; });
+    state.prevUserLabel = labelByUser;
+
+    state.prevBestWin = {};
+    state.prevWorstLoss = {};
+    prevRosters.forEach(r => {
+      const rid = r.roster_id, myk = ktcByRoster[rid], uid = r.owner_id, gs = games[rid] || [];
+      const upsets = gs.filter(x => x.opp != null && x.mp > x.op && ktcByRoster[x.opp] > myk);
+      const bad = gs.filter(x => x.opp != null && x.mp < x.op && ktcByRoster[x.opp] < myk);
+      if (upsets.length) {
+        const bw = upsets.reduce((a, b) => (ktcByRoster[b.opp] > ktcByRoster[a.opp] ? b : a));
+        state.prevBestWin[uid] = { opp: ownerByRoster[bw.opp], oppKtc: ktcByRoster[bw.opp], wk: bw.wk, mp: bw.mp, op: bw.op };
+      }
+      if (bad.length) {
+        const wl = bad.reduce((a, b) => (ktcByRoster[b.opp] < ktcByRoster[a.opp] ? b : a));
+        state.prevWorstLoss[uid] = { opp: ownerByRoster[wl.opp], oppKtc: ktcByRoster[wl.opp], wk: wl.wk, mp: wl.mp, op: wl.op };
+      }
+    });
+  } catch (e) {
+    console.warn('prev results unavailable', e);
   }
 }
 

@@ -540,6 +540,14 @@ input[type=text]:focus, select:focus { border-color: var(--gold); background: rg
 .recent-item.prev { border-color: rgba(127,212,255,0.22); background: rgba(46,108,255,0.05); animation: fadeIn .4s ease; }
 .recent-item.prev .pick-no { color: #7fd4ff; }
 .recent-empty { color: var(--muted); font-size: 12px; padding: 14px 6px; text-align: center; list-style: none; }
+/* prior-season best win / worst loss */
+.prev-results { list-style: none; display: grid; gap: 6px; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.pr-row { display: flex; align-items: center; gap: 8px; font-size: 11px; }
+.pr-tag { font-family: 'Bebas Neue'; letter-spacing: 1px; font-size: 11px; padding: 2px 7px; border-radius: 5px; white-space: nowrap; }
+.pr-tag.win { color: #7ee0a0; background: rgba(46,204,113,0.14); border: 1px solid rgba(46,204,113,0.4); }
+.pr-tag.loss { color: #ff8a8a; background: rgba(215,38,61,0.14); border: 1px solid rgba(215,38,61,0.4); }
+.pr-txt { flex: 1; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pr-score { color: var(--muted); white-space: nowrap; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
 /* BOARD */
