@@ -535,14 +535,12 @@ function openVideoModal(name, vid, gesture) {
   state._modalName = name;
   state._modalVid = vid;
   $('videoModalTitle').textContent = name;
-  const wantSound = !!(gesture || ytActivated);
   try {
-    if (wantSound) { ytPlayer.unMute(); ytPlayer.setVolume(100); ytActivated = true; }
-    else { ytPlayer.mute(); }
-    ytPlayer.loadVideoById(vid); // autoplays
+    ytPlayer.mute();
+    ytPlayer.loadVideoById(vid); // autoplays (muted)
   } catch (e) { /* noop */ }
   const um = $('videoModalUnmute');
-  if (um) um.hidden = wantSound; // offer one-tap sound only when it started muted
+  if (um) um.hidden = false; // always offer one-tap sound since we start muted
   $('videoModal').classList.add('open');
 }
 function closeVideoModal() {
