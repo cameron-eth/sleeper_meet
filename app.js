@@ -485,7 +485,7 @@ function revealPick(pick) {
     $('lastPickBlock').hidden = true;
     $('onClockBlock').hidden = false;
     updateClock();
-  }, hasVid ? 27000 : 6500);
+  }, hasVid ? 65000 : 6500);
 }
 
 // ---- Persistent reel player (one YouTube player, blessed for sound by the first user click) ----
