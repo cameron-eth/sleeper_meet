@@ -396,6 +396,8 @@ async function loadPicks(initial=false) {
       const latest = newPicks[newPicks.length - 1];
       fireChime(latest);
       revealPick(latest);
+      // Reset the on-clock countdown anchor so the timer restarts from this pick.
+      if (state.draft) state.draft.last_picked = Date.now();
     }
 
     picks.forEach(p => state.knownPickIds.add(p.pick_no));
